@@ -15,7 +15,7 @@ jobs:
       run: cargo install cargo-release
     - name: Bump version and create tag
       run: |
-        cargo release --no-dev-version patch
+        cargo release -vv --execute --no-publish --no-confirm
         git push --follow-tags
 
   build:
