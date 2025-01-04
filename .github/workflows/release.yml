@@ -13,9 +13,24 @@ jobs:
       run: |
         cargo build --release
 
-    - name: Get Version
-      id: get_version
-      run: echo ::set-output name=VERSION::$(grep '^version' Cargo.toml | cut -d '"' -f2)
+    - name: Get Latest Tag
+      id: get_latest_tag
+      run: |
+        git fetch --tags
+        latest_tag=$(git describe --tags --abbrev=0)
+        echo ::set-output name=LATEST_TAG::$latest_tag
+
+    - name: Bump Version
+      id: bump_version
+      run: |
+        latest_tag=${{ steps.get_latest_tag.outputs.LATEST_TAG }}
+        version=$(echo $latest_tag | sed 's/^v//')
+        major=$(echo $version | cut -d '.' -f1)
+        minor=$(echo $version | cut -d '.' -f2)
+        patch=$(echo $version | cut -d '.' -f3)
+        new_patch=$((patch + 1))
+        new_version="$major.$minor.$new_patch"
+        echo ::set-output name=NEW_VERSION::$new_version
 
     - name: Create Tag
       uses: actions/github-script@v3
@@ -25,7 +40,7 @@ jobs:
           github.git.createRef({
             owner: context.repo.owner,
             repo: context.repo.repo,
-            ref: 'refs/tags/v${{ steps.get_version.outputs.VERSION }}',
+            ref: 'refs/tags/v${{ steps.bump_version.outputs.NEW_VERSION }}',
             sha: context.sha
           })
 
@@ -35,8 +50,8 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: v${{ steps.get_version.outputs.VERSION }}
-        release_name: Release v${{ steps.get_version.outputs.VERSION }}
+        tag_name: v${{ steps.bump_version.outputs.NEW_VERSION }}
+        release_name: Release v${{ steps.bump_version.outputs.NEW_VERSION }}
         draft: false
         prerelease: false
 
