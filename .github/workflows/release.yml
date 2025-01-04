@@ -15,6 +15,8 @@ jobs:
       run: cargo install cargo-release
     - name: Bump version and create tag
       run: |
+        git config --global user.email “ruimo.uno@gmail.com"
+        git config --global user.name “Shisei Hanai"
         cargo release -vv --execute --no-publish --no-confirm
         git push --follow-tags
 
