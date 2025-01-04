@@ -9,32 +9,39 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Install Rust
-      uses: actions-rs/toolchain@v1
+    - name: Build
+      run: |
+        cargo build --release
+
+    - name: Get Version
+      id: get_version
+      run: echo ::set-output name=VERSION::$(grep '^version' Cargo.toml | cut -d '"' -f2)
+
+    - name: Create Tag
+      uses: actions/github-script@v3
       with:
-        toolchain: stable
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          github.git.createRef({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            ref: 'refs/tags/v${{ steps.get_version.outputs.VERSION }}',
+            sha: context.sha
+          })
 
-    - name: Install cargo-make
-      run: cargo install cargo-make
-
-    - name: Update version and create tag
-      run: cargo make update-version
-
-    - name: Build release
-      run: cargo make release
-
-    - name: Create release
+    - name: Create Release
       id: create_release
       uses: actions/create-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: v${{ env.CARGO_MAKE_CRATE_VERSION }}
-        release_name: Release v${{ env.CARGO_MAKE_CRATE_VERSION }}
+        tag_name: v${{ steps.get_version.outputs.VERSION }}
+        release_name: Release v${{ steps.get_version.outputs.VERSION }}
         draft: false
         prerelease: false
 
-    - name: Upload release asset
+    - name: Upload Release Asset
+      id: upload-release-asset 
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
