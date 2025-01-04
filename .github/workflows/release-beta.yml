@@ -21,3 +21,15 @@ jobs:
         git config --global user.email "ruimo.uno@gmail.com"
         git config --global user.name "Shisei Hanai"
         cargo release beta --execute --no-publish --no-confirm
+    - name: Release build
+      run: cargo build --release
+    - name: copy artifacts
+      run: |
+        rm -rf downloads
+        mkdir downloads
+        cp target/release/patreonbot downloads/
+    - name: upload artifacts
+      uses: actions/upload-artifact@v2
+      with: 
+        name: assets-for-download
+        path: downloads
