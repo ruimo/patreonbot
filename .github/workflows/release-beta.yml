@@ -4,7 +4,10 @@ on: [ workflow_dispatch ]
 
 jobs:
   beta_release:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macOS-latest]
     steps:
     - uses: actions/checkout@v3
     - name: cargo plugin cache
@@ -23,13 +26,18 @@ jobs:
         cargo release beta --execute --no-publish --no-confirm
     - name: Release build
       run: cargo build --release
-    - name: copy artifacts
-      run: |
-        rm -rf downloads
-        mkdir downloads
-        cp target/release/patreonbot downloads/
-    - name: upload artifacts
+    - name: Upload artifact
       uses: actions/upload-artifact@v4
-      with: 
-        name: assets-for-download
-        path: downloads
+      with:
+        name: binary-${{ matrix.os }}
+        path: target/release/${{ env.BINARY_NAME }}
+        if-no-files-found: error
+
+    - name: Release
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        files: |
+          target/release/${{ env.BINARY_NAME }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
