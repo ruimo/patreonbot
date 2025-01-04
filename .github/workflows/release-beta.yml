@@ -29,7 +29,7 @@ jobs:
         mkdir downloads
         cp target/release/patreonbot downloads/
     - name: upload artifacts
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with: 
         name: assets-for-download
         path: downloads
