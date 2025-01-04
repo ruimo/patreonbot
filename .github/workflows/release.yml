@@ -2,25 +2,45 @@ name: Release
 
 on: [ workflow_dispatch ]
 
+env:
+  CARGO_TERM_COLOR: always
+
 jobs:
   release:
     runs-on: ubuntu-latest
+
     steps:
     - uses: actions/checkout@v3
-
-    - name: cargo plugin cache
-      id: cargo-plugin-cache
-      uses: actions/cache@v2
-      with:
-        path: ~/.cargo/bin/
-        key: ${{ runner.os }}-cargo-plugins
-
-    - name: install cargo plugin
-      if: steps.cargo-plugin-cache.outputs.cache-hit != 'true'
+    - name: Install cargo-release
       run: cargo install cargo-release
+    - name: Bump version and create tag
+      run: |
+        cargo release --no-dev-version patch
+        git push --follow-tags
+
+  build:
+    needs: release
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macOS-latest]
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Build
+      run: cargo build --release
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: binary-${{ matrix.os }}
+        path: target/release/${{ env.BINARY_NAME }}
+        if-no-files-found: error
 
     - name: Release
-      run: |
-        git config --global user.email “ruimo.uno@gmail.com"
-        git config --global user.name “Shisei Hanai"
-        cargo release -vv --execute --no-publish --no-confirm
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        files: |
+          target/release/${{ env.BINARY_NAME }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
