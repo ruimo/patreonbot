@@ -20,6 +20,7 @@ jobs:
       run: |
         git fetch --tags
         latest_tag=$(git describe --tags --abbrev=0)
+        echo LATEST_TAG: $latest_tag
         echo ::set-output name=LATEST_TAG::$latest_tag
 
     - name: Bump Version
