@@ -1,6 +1,9 @@
 name: Release
 
-on: [ workflow_dispatch ]
+on:
+  push:
+    tags:
+      - 'v*'
 
 jobs:
   release:
@@ -8,37 +11,10 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-      with:
-        fetch-depth: 0
 
     - name: Build
       run: |
         cargo build --release
-
-    - name: Get Latest Tag
-      id: get_latest_tag
-      run: |
-        git fetch --tags
-        latest_tag=$(git describe --tags --abbrev=0)
-        echo LATEST_TAG: $latest_tag
-        echo ::set-output name=LATEST_TAG::$latest_tag
-
-    - name: Bump Version
-      id: bump_version
-      run: |
-        latest_tag=${{ steps.get_latest_tag.outputs.LATEST_TAG }}
-        version=$(echo $latest_tag | sed 's/^v//')
-        major=$(echo $version | cut -d '.' -f1)
-        minor=$(echo $version | cut -d '.' -f2)
-        patch=$(echo $version | cut -d '.' -f3)
-        new_patch=$((patch + 1))
-        new_version="$major.$minor.$new_patch"
-        echo ::set-output name=NEW_VERSION::$new_version
-
-    - name: Create Tag
-      run: |
-        git tag v${{ steps.bump_version.outputs.NEW_VERSION }}
-        git push origin v${{ steps.bump_version.outputs.NEW_VERSION }}
 
     - name: Create Release
       id: create_release
@@ -46,8 +22,8 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: v${{ steps.bump_version.outputs.NEW_VERSION }}
-        release_name: Release v${{ steps.bump_version.outputs.NEW_VERSION }}
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
         draft: false
         prerelease: false
 
